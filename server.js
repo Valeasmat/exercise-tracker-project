@@ -43,29 +43,54 @@ app.post("/api/users",async function (req, res,next) {
     });
 })
 const createAndSaveExercise = require("./myExerciseModel.js").createAndSaveExercise;
+const findUser = require("./myUserModel.js").findUser;
 app.post("/api/users/:_id/exercises",async function (req, res,next) {
   console.log(req.params._id)
   let r=req.body
   console.log(req.body)
-  createAndSaveExercise(r,function (err, data) {
+  r[":_id"]=req.params._id
+  let object;
+  await findUser(r[":_id"],function (err, data) {
+    if (err) {
+       console.log(err)
+          return next(err);
+        }
+    object={
+      username: data.username,
+      _id: data.exId
+    }
+    });
+
+  await createAndSaveExercise(r,object,function (err, data) {
+    console.log(object)
     if (err) {
        console.log(err)
           return next(err);
         }
     let obj={
-       _id: data.exId,
       username: data.username,
-      date: data.date,
+      description: data.description,
       duration: data.duration,
-      description: data.description
+      date: data.date,
+      _id: data.exId
     }
       res.json(obj);
     });
 })
+const findUsers = require("./myUserModel.js").findUsers;
 const getExerciseLogs = require("./myExerciseModel.js").getExerciseLogs;
+app.get("/api/users",async function (req, res,next) {
+  findUsers(function (err, data) {
+    if (err) {
+       console.log(err)
+          return next(err);
+        }
+      res.json(data);
+    });
+})
 app.get("/api/users/:_id/logs",async function (req, res,next) {
-  console.log(req.params._id)
-  getExerciseLogs(req.params._id,function (err, data) {
+  console.log(req.params["_id"])
+  getExerciseLogs(req.params["_id"],function (err, data) {
     if (err) {
        console.log(err)
           return next(err);

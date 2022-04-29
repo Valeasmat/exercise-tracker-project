@@ -16,14 +16,9 @@ const exerciseSchema = new Schema({
 let Exercise = mongoose.model('Exercise', exerciseSchema);
 const findUser = require("./myUserModel.js").findUser;
 
-const createAndSaveExercise = async (exercise,done) => {
-  let user;
+const createAndSaveExercise = async (exercise,obj,done) => {
+  let user=obj;
   console.log(exercise[":_id"])
-  await findUser(exercise[":_id"],function(err,data){
-    if (err) return console.log(err);
-    user=data
-    //done(null , data);
-  })
   let d="";
   if(exercise.date!=null||exercise.date!=""){
     d=Date.parse(exercise.date)
@@ -43,7 +38,7 @@ const createAndSaveExercise = async (exercise,done) => {
       description: exercise.description
   });
   console.log(doc)
-  doc.save(function (err,end) {
+  await doc.save(function (err,end) {
     if (err) return console.log(err);
     done(null , end);
   });
@@ -58,17 +53,17 @@ const getExerciseLogs = async (id,done) => {
     user=data
     //done(null , data);
   })
-  Exercise.find({exId:id},function(err,docs){
+  await Exercise.find({exId:id},function(err,docs){
     if (err) return console.log(err);
     docs.forEach(n=>exercises.push({
-      date: n.date,
+      description: n.description,
       duration: n.duration,
-      description: n.description
+      date: n.date,
     }))
     docs = { 
-      _id: user._id,
       username: user.username,
-      count:exercises.size,
+      count:exercises.length,
+      _id: user._id,
       logs:exercises
   };
   console.log(docs)

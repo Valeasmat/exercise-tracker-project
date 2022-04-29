@@ -24,9 +24,21 @@ const createAndSaveUser = async (username,done) => {
 const findUser = async (userId,done) => {
   await User.findById(userId,function (err,doc){
      if (err) return console.log(err);
-    user=doc;
-    console.log(user+"success")
-    done(null , doc);
+    let user=doc;
+    console.log(doc+"success")
+    done(null , user);
+  });
+};
+
+const findUsers = async (done) => {
+  let objs=[];
+  await User.find({},function (err,docs){
+     if (err) return console.log(err);
+    docs.forEach(n=>objs.push({
+      username:n.username,
+      _id:n._id
+    }))
+    done(null , objs);
   });
 };
 
@@ -36,3 +48,4 @@ const findUser = async (userId,done) => {
 exports.userModel=User
 exports.createAndSaveUser=createAndSaveUser;
 exports.findUser=findUser;
+exports.findUsers=findUsers;
