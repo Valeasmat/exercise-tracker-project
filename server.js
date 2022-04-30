@@ -27,7 +27,7 @@ app.get('/', (req, res) => {
 
 const createAndSaveLog = require("./myLogModel.js").createAndSaveLog;
 
-app.post("/api/users",async function (req, res,next) {
+app.post("/api/users",function (req, res,next) {
   let r=req.body
   console.log(req.body)
   createAndSaveLog(r.username,function (err, data) {
@@ -44,41 +44,40 @@ app.post("/api/users",async function (req, res,next) {
 })
 const findEditThenSaveLog = require("./myLogModel.js").findEditThenSaveLog;
 const findLogsById = require("./myLogModel.js").findLogsById;
-app.post("/api/users/:_id/exercises",async function (req, res,next) {
+app.post("/api/users/:_id/exercises",function (req, res,next) {
   console.log(req.params._id)
   let r=req.body
   console.log(req.body)
   r[":_id"]=req.params._id
-  let d="";
-    if(r.date!=null||r.date!=""||!isNaN(r.date)){
+  let str=new Date()
+  let d=str.toDateString()
+    if(r.hasOwnProperty("date")){
       d=Date.parse(r.date)
       if(d){
         let str=new Date(d)
         d=str.toDateString()
       }
-    }else{
-      let str=new Date()
-      d=str.toDateString()
     }
     r.date=d;
-  await findEditThenSaveLog(r[":_id"],r,function (err, data) {
+  findEditThenSaveLog(r[":_id"],r,function (err, data) {
     console.log(r)
     if (err) {
        console.log(err)
           return next(err);
         }
     let obj={
+      _id: data._id,
       username: data.username,
-      description: r.description,
-      duration: r.duration,
-      date: r.date,
-      _id: data._id
+      date: new Date(r.date).toDateString(),
+      duration: +r.duration,
+      description: r.description
     }
       res.json(obj);
     });
 })
 const findUsers = require("./myLogModel.js").findUsers;
-app.get("/api/users",async function (req, res,next) {
+const queryChain = require("./myLogModel.js").queryChain;
+app.get("/api/users",function (req, res,next) {
   findUsers(function (err, data) {
     if (err) {
        console.log(err)
@@ -87,15 +86,46 @@ app.get("/api/users",async function (req, res,next) {
       res.json(data);
     });
 })
-app.get("/api/users/:_id/logs",async function (req, res,next) {
+app.get("/api/users/:_id/logs",function (req, res,next) {
   console.log(req.params["_id"])
-  findLogsById(req.params["_id"],function (err, data) {
+  console.log(req.query)
+  if(req.query.hasOwnProperty("from")&&req.query.hasOwnProperty("to")||req.query.hasOwnProperty("limit")){
+    let params={};
+    if(req.query.hasOwnProperty("from")){
+        params={
+        from: req.query.from,
+        to:req.query.to
+        }
+    }
+    if(req.query.hasOwnProperty("limit")){
+      params.limit=req.query.limit
+    }
+    console.log(params)
+    queryChain(req.params["_id"],params,function (err, data) {
     if (err) {
        console.log(err)
           return next(err);
         }
+    data.log.forEach(n=>{
+      n.date=new Date(n.date).toDateString();
+      n.duration=+n.duration
+    })
       res.json(data);
     });
+    
+  }else{
+    findLogsById(req.params["_id"],function (err, data) {
+    if (err) {
+       console.log(err)
+          return next(err);
+        }
+    data.log.forEach(n=>{
+      n.date=new Date(n.date).toDateString();
+      n.duration=+n.duration
+    })
+      res.json(data);
+    });
+  }
 })
 
 

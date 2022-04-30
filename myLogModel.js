@@ -11,33 +11,33 @@ const logSchema = new Schema({
   date: String,
   duration: Number,
   description: String,
-  logs:[Schema.Types.Mixed]
+  log:[Schema.Types.Mixed]
 });
 
 let Log = mongoose.model('Log', logSchema);
 
-const createAndSaveLog = async (username,done) => {
+const createAndSaveLog = (username,done) => {
   let doc = new Log({ 
     username: username,
-    logs:[]
+    log:[]
   });
   console.log(doc)
-  await doc.save(function (err,data) {
+  doc.save(function (err,data) {
     if (err) return console.log(err);
     done(null , data);
   });
 };
-const findEditThenSaveLog = async (userId,exercise,done) => {
-  
+const findEditThenSaveLog =  (userId,exercise,done) => {
+  let dur=parseInt(exercise.duration+'')
   let l={
     date: exercise.date,
-    duration: exercise.duration,
+    duration: dur,
     description: exercise.description
   }
   Log.findById(userId,function (err, data) {
     if (err) return console.log(err);
-    data.logs.push(l)
-    data.count=data.logs.length
+    data.log.push(l)
+    data.count=data.log.length
     data.save((err, updatedLog) => {
       if(err) return console.log(err);
       done(null, updatedLog)
@@ -45,9 +45,9 @@ const findEditThenSaveLog = async (userId,exercise,done) => {
   })
 };
 
-const findUsers = async (done) => {
+const findUsers = (done) => {
   let objs=[];
-  await Log.find({},function (err,docs){
+  Log.find({},function (err,docs){
      if (err) return console.log(err);
     docs.forEach(n=>objs.push({
       username:n.username,
@@ -60,14 +60,52 @@ const findUsers = async (done) => {
 const findLogsById = (personId, done) => {
   Log.findById(personId, function (err, data) {
     if (err) return console.log(err);
+    
     let obj={
       username: data.username,
       count:data.count,
       _id:data._id,
-      logs:data.logs
+      log:data.log
     }
     done(null , obj);
   });
+};
+
+const queryChain = (userId,params,done) => {
+  let filteredLogs=[];
+  let all=params.hasOwnProperty('from')
+  Log.findById(userId,function (err, data) {
+    if (err) return console.log(err);
+    if(!all){
+      data.log.forEach(n=>filteredLogs.push(n))
+    }else{
+      data.log.forEach(l=>{
+      let ac=+(new Date(l.date).getTime())
+      let fr=+(new Date(params.from).getTime())
+      let too=+(new Date(params.to).getTime())
+      if(ac>=fr&&ac<=too){
+        filteredLogs.push(l)
+        console.log(l)
+      }
+    })
+    }
+    filteredLogs.sort((a,b)=>{
+      let an=+(new Date(a.date)).getTime()
+      let bn=+(new Date(b.date)).getTime()
+      return bn-an
+    })
+    if(params.hasOwnProperty("limit")){
+      let lim=parseInt(params.limit)
+      filteredLogs.splice(lim,filteredLogs.length-lim)
+    }
+    let obj={
+      username: data.username,
+      count:filteredLogs.length,
+      _id:data._id,
+      log:filteredLogs
+    }
+    done(null , obj);
+  })
 };
 
 
@@ -77,3 +115,4 @@ exports.findEditThenSaveLog=findEditThenSaveLog
 exports.createAndSaveLog=createAndSaveLog;
 exports.findLogsById=findLogsById;
 exports.findUsers=findUsers;
+exports.queryChain=queryChain;
